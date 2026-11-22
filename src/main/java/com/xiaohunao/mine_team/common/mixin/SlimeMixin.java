@@ -1,17 +1,12 @@
 package com.xiaohunao.mine_team.common.mixin;
 
-import com.xiaohunao.mine_team.common.capability.TeamCapability;
-import com.xiaohunao.mine_team.common.capability.TeamData;
-import com.xiaohunao.mine_team.common.network.NetworkHandler;
-import com.xiaohunao.mine_team.common.network.s2c.TeamDataSyncS2CPayload;
+import com.xiaohunao.mine_team.common.team.TeamSync;
+import com.xiaohunao.mine_team.common.util.TeamUtil;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.ServerScoreboard;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.scores.PlayerTeam;
-import net.minecraftforge.network.PacketDistributor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,14 +21,10 @@ public class SlimeMixin {
         Slime thisSlime = (Slime) (Object) this;
         Level level = thisSlime.level();
         if (!level.isClientSide){
-            ServerLevel serverLevel = (ServerLevel) level;
-            ServerScoreboard scoreboard = serverLevel.getServer().getScoreboard();
-            PlayerTeam playersTeam = scoreboard.getPlayersTeam(thisSlime.getScoreboardName());
+            PlayerTeam playersTeam = TeamUtil.getTeam(thisSlime);
             if (playersTeam != null){
-                scoreboard.addPlayerToTeam(slime.getScoreboardName(),playersTeam);
+                TeamSync.applyTeam(slime, playersTeam.getName(), true);
                 slime.setGlowingTag(true);
-                TeamData teamData = TeamCapability.get(thisSlime).orElse(new TeamCapability(thisSlime)).data;
-                NetworkHandler.CHANNEL.send(PacketDistributor.DIMENSION.with(level::dimension),new TeamDataSyncS2CPayload(slime.getId(),teamData));
             }
         }
     }

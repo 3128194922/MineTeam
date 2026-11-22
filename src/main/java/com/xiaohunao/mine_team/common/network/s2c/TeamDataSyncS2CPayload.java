@@ -4,16 +4,19 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.xiaohunao.mine_team.common.capability.TeamCapability;
 import com.xiaohunao.mine_team.common.capability.TeamData;
+import com.xiaohunao.mine_team.common.util.TeamUtil;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
-import java.util.Objects;
 import java.util.function.Supplier;
 
 public record TeamDataSyncS2CPayload(int entityId, TeamData data) {
@@ -39,16 +42,36 @@ public record TeamDataSyncS2CPayload(int entityId, TeamData data) {
         public static void handle(TeamDataSyncS2CPayload packet, Supplier<NetworkEvent.Context> ctx) {
             NetworkEvent.Context context = ctx.get();
             context.enqueueWork(() -> {
-                Entity entity = Minecraft.getInstance().level.getEntity(packet.entityId);
-                if (entity instanceof LivingEntity livingEntity) {
-                    TeamCapability.get(livingEntity).ifPresent(teamCapability -> {
-                        Scoreboard scoreboard = livingEntity.level().getScoreboard();
-                        if (!Objects.equals(teamCapability.data.getColor(), packet.data.getColor())) {
-                            scoreboard.addPlayerToTeam(livingEntity.getScoreboardName(),scoreboard.getPlayerTeam(packet.data.getColor()));
-                        }
-                        teamCapability.data.copy(packet.data);
-                    });
+                ClientLevel level = Minecraft.getInstance().level;
+                Entity entity = level == null ? null : level.getEntity(packet.entityId);
+                if (entity == null) {
+                    LocalPlayer localPlayer = Minecraft.getInstance().player;
+                    if (localPlayer != null && localPlayer.getId() == packet.entityId) {
+                        entity = localPlayer;
+                    }
                 }
+                if (!(entity instanceof LivingEntity livingEntity)) {
+                    return;
+                }
+
+                String color = TeamUtil.normalizeColor(packet.data.getColor());
+                TeamCapability.get(livingEntity).ifPresent(teamCapability -> {
+                    teamCapability.data.copy(packet.data);
+                    teamCapability.data.setColor(color);
+
+                    Scoreboard scoreboard = livingEntity.level().getScoreboard();
+                    PlayerTeam currentTeam = scoreboard.getPlayersTeam(livingEntity.getScoreboardName());
+                    if (TeamUtil.isNoTeam(color)) {
+                        if (currentTeam != null) {
+                            scoreboard.removePlayerFromTeam(livingEntity.getScoreboardName(), currentTeam);
+                        }
+                    } else {
+                        PlayerTeam targetTeam = scoreboard.getPlayerTeam(color);
+                        if (targetTeam != null && currentTeam != targetTeam) {
+                            scoreboard.addPlayerToTeam(livingEntity.getScoreboardName(), targetTeam);
+                        }
+                    }
+                });
             });
         }
     }

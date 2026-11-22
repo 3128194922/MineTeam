@@ -7,6 +7,7 @@ import com.xiaohunao.mine_team.common.capability.TeamCapability;
 import com.xiaohunao.mine_team.common.capability.TeamData;
 import com.xiaohunao.mine_team.common.network.NetworkHandler;
 import com.xiaohunao.mine_team.common.network.c2s.TeamDataSyncC2SPayload;
+import com.xiaohunao.mine_team.common.util.TeamUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ImageButton;
@@ -42,11 +43,12 @@ public class TeamRender {
     public void initButton(){
         TeamCapability.get(player).ifPresent(teamCapability -> {
             TeamData teamData = teamCapability.data;
+            String color = TeamUtil.normalizeColor(teamData.getColor());
             int iconSize = 16;
             int off = 6;
 
             this.teamIcon = new ImageButton(screen.leftPos - iconSize,screen.topPos, iconSize, iconSize,0,0,0,
-                    MineTeam.asResource("textures/gui/team/" + teamData.getColor() + "_team_icon.png"),
+                    MineTeam.asResource("textures/gui/team/" + color + "_team_icon.png"),
                     16,16,
                     button-> {
                         this.teamIcon.visible = false;
@@ -56,12 +58,12 @@ public class TeamRender {
                     });
 
             this.teamPVPOff = new ImageButton(screen.leftPos - iconSize,screen.topPos + iconSize + off, iconSize,iconSize, 0,0,0,
-                    MineTeam.asResource("textures/gui/team/pvp/" + teamData.getColor() + "_pvp_off.png"),
+                    MineTeam.asResource("textures/gui/team/pvp/" + color + "_pvp_off.png"),
                     iconSize,iconSize,
                     button-> setTeamPvP(true));
 
             this.teamPVPOn = new ImageButton(screen.leftPos - iconSize,screen.topPos + iconSize + off, iconSize, iconSize,0, 0,0,
-                    MineTeam.asResource("textures/gui/team/pvp/" + teamData.getColor() + "_pvp_on.png"),
+                    MineTeam.asResource("textures/gui/team/pvp/" + color + "_pvp_on.png"),
                     iconSize,iconSize,
                     button-> setTeamPvP(false));
 
@@ -125,14 +127,17 @@ public class TeamRender {
             teamData.setPvp(friendlyFire);
             NetworkHandler.CHANNEL.sendToServer(new TeamDataSyncC2SPayload(player.getId(), teamData));
         });
+        updatePvPButtons(friendlyFire);
+    }
+
+    private void updatePvPButtons(boolean friendlyFire) {
         this.teamPVPOn.visible = friendlyFire;
         this.teamPVPOff.visible = !friendlyFire;
     }
 
     private void hasEnableTeamPvP() {
         TeamCapability.get(player).ifPresent(teamCapability -> {
-            boolean teamPvP = teamCapability.data.isPvP();
-            setTeamPvP(teamPvP);
+            updatePvPButtons(teamCapability.data.isPvP());
         });
     }
 

@@ -1,12 +1,12 @@
 package com.xiaohunao.mine_team.common.mixin;
 
 import com.xiaohunao.mine_team.common.entity.ai.goal.TeamOwnerHurtTargetGoal;
+import com.xiaohunao.mine_team.common.entity.ai.goal.TeamFollowPlayerGoal;
 import com.xiaohunao.mine_team.common.mixed.MobMixed;
+import com.xiaohunao.mine_team.common.util.TeamUtil;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.ServerScoreboard;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -24,6 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Mob.class)
 public abstract class MobMixin extends Entity implements MobMixed {
+    @Shadow @Final public GoalSelector goalSelector;
     @Shadow @Final public GoalSelector targetSelector;
 
 
@@ -42,27 +43,39 @@ public abstract class MobMixin extends Entity implements MobMixed {
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void init(EntityType<? extends Mob> entityType, Level level, CallbackInfo ci) {
-        this.targetSelector.addGoal(2, new TeamOwnerHurtTargetGoal((Mob) (Object) this));
+        if (this.level() != null && !this.level().isClientSide()) {
+            this.targetSelector.addGoal(2, new TeamOwnerHurtTargetGoal((Mob) (Object) this));
+            this.goalSelector.addGoal(6, new TeamFollowPlayerGoal((Mob) (Object) this, 1.0D));
+        }
     }
 
 
     @Override
     public void setTame(PlayerTeam tame) {
-        this.entityData.set(DATA_FLAGS_ID, tame.getName());
+        this.entityData.set(DATA_FLAGS_ID, tame == null ? "" : tame.getName());
     }
 
     @Override
     public boolean wantsToAttack(LivingEntity ownerLastHurt, PlayerTeam lastHurtTeam,PlayerTeam team) {
-        return lastHurtTeam != team;
+        if (ownerLastHurt == null || ownerLastHurt == (LivingEntity) (Object) this) {
+            return false;
+        }
+        if (team == null || TeamUtil.isNoTeam(team.getName())) {
+            return false;
+        }
+        if (lastHurtTeam != null
+                && !TeamUtil.isNoTeam(lastHurtTeam.getName())
+                && lastHurtTeam.getName().equals(team.getName())) {
+            return false;
+        }
+        return !TeamUtil.isSameTeam((LivingEntity) (Object) this, ownerLastHurt);
     }
 
     @Override
     public PlayerTeam getOwnerTeam() {
-        MinecraftServer server = this.getServer();
-        if (server != null) {
-            ServerScoreboard scoreboard = server.getScoreboard();
-            return scoreboard.getPlayerTeam(entityData.get(DATA_FLAGS_ID));
+        if (this.getServer() == null || TeamUtil.isFrantic((LivingEntity) (Object) this)) {
+            return null;
         }
-        return null;
+        return TeamUtil.getTeam((LivingEntity) (Object) this);
     }
 }
