@@ -67,7 +67,7 @@ public class TeamCapability{
         }
 
         if (attackEntity instanceof Player player && TeamUtil.isPet(hurtEntity)) {
-            return !player.isShiftKeyDown();
+            return player.isShiftKeyDown() && TeamUtil.isOwnedBy(hurtEntity, player.getUUID());
         }
 
         if (!(attackEntity instanceof Player)) {
