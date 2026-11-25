@@ -76,6 +76,10 @@ public final class TeamSync {
             scoreboard.addPlayerToTeam(entity.getScoreboardName(), targetTeam);
         }
 
+        if (entity instanceof Mob mob && mob.getTarget() != null && TeamUtil.isSameTeam(mob, mob.getTarget())) {
+            mob.setTarget(null);
+        }
+
         if (sync) {
             send(entity);
         }

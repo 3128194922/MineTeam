@@ -11,6 +11,7 @@ import net.minecraft.server.ServerScoreboard;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.scores.PlayerTeam;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -38,6 +39,11 @@ public class ServerScoreboardMixin {
                             TeamCapability.get(livingEntity).ifPresent(capability ->
                                     capability.data.setColor(TeamUtil.normalizeColor(team.getName()))
                             );
+                        }
+                        if (entity instanceof Mob mob
+                                && mob.getTarget() != null
+                                && TeamUtil.isSameTeam(mob, mob.getTarget())) {
+                            mob.setTarget(null);
                         }
                     }
                 });

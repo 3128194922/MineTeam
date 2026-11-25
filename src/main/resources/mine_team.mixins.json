@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "mine_team.refmap.json",
   "mixins": [
+    "LivingEntityMixin",
     "MobMixin",
     "PlayerMixin",
     "PlayerTeamMixin",
