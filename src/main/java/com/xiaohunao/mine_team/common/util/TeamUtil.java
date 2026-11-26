@@ -7,9 +7,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import org.jetbrains.annotations.Nullable;
@@ -106,6 +108,15 @@ public final class TeamUtil {
         return !isNoTeam(firstColor) && !isNoTeam(secondColor) && firstColor.equals(secondColor);
     }
 
+    public static boolean isRivalTeam(LivingEntity first, LivingEntity second) {
+        if (first == second) {
+            return false;
+        }
+        String firstColor = getEffectiveTeamColor(first);
+        String secondColor = getEffectiveTeamColor(second);
+        return !isNoTeam(firstColor) && !isNoTeam(secondColor) && !firstColor.equals(secondColor);
+    }
+
     @Nullable
     public static UUID getOwnerUUID(LivingEntity entity) {
         if (entity instanceof OwnableEntity ownable) {
@@ -153,6 +164,14 @@ public final class TeamUtil {
 
     public static boolean isPet(LivingEntity entity) {
         return getOwnerUUID(entity) != null;
+    }
+
+    public static boolean isTamedPet(LivingEntity entity) {
+        return entity instanceof OwnableEntity ownable && ownable.getOwnerUUID() != null;
+    }
+
+    public static boolean isHostileForTeamFight(LivingEntity entity) {
+        return entity instanceof Enemy || entity.getType().getCategory() == MobCategory.MONSTER;
     }
 
     public static boolean isFrantic(LivingEntity entity) {

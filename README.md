@@ -6,8 +6,11 @@
 
 - 新增 `TeamUtil`：统一处理队伍颜色、记分板队伍、宠物主人、驯服状态、狂暴状态和坐下状态。
 - 新增 `TeamSync`：集中执行队伍创建、应用、同步、宠物队伍刷新，以及从记分板恢复队伍关系。
-- 取消队伍专属 AI：不再注册集火/跟随 Goal；非白色队伍只通过 `Mob#canAttack` 过滤同队目标，
-  白色队伍保持原版 AI。
+- 取消集火/跟随 Goal；非白色队伍通过 `LivingEntity#canAttack` 过滤同队目标，并给 `Mob`
+  根类增加一个不同非白队伍敌对 Mob 互殴 Goal；白色队伍保持原版 AI 且不参与互殴。
+- 实体兼容：互殴目标注册在 `Mob` 根类，覆盖 Alex's Mobs、Cataclysm、Behemoths 等模组的
+  `Monster`、`PathfinderMob`、`Mob` 子类；用 `Enemy`/`MONSTER` 分类识别敌对生物，
+  用 `OwnableEntity` 排除真正宠物。
 - 宠物队伍跟随主人：驯服、玩家换队、复活、切换维度以及生物进入世界时，会同步宠物到主人的有效队伍颜色。
 - 玩家死亡不再清空其宠物队伍：死亡事件不再直接移除队伍关系， revive/clone 时会保留队伍数据。
 - 同队伍生物互认为友军：怪物不会把主人或同队生物作为攻击目标；同队生物之间的普通伤害会被取消。
@@ -64,6 +67,8 @@ cd E:\Server_mod\MineTeam
 - `src/main/java/com/xiaohunao/mine_team/common/team/TeamSync.java`：本地新增的队伍同步中心。
 - `src/main/java/com/xiaohunao/mine_team/common/mixin/LivingEntityMixin.java`：非白色队伍 Mob 的
   `canAttack` 同队目标过滤。
+- `src/main/java/com/xiaohunao/mine_team/common/entity/ai/goal/TeamRivalTargetGoal.java`：
+  不同非白队伍敌对 `Mob` 的互殴目标。
 - `src/main/java/com/xiaohunao/mine_team/common/mixin/MobMixin.java`：队伍数据；不再注册集火/跟随 Goal。
 - `src/main/java/com/xiaohunao/mine_team/common/event/subscriber/`：登录、复活、换维度、攻击、驯服和实体入城事件。
 
